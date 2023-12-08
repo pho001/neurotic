@@ -8,7 +8,7 @@ public class Main {
 
 
         //TODO: data initialization will be moved to MODEL
-        FileHandler fh = new FileHandler("data/ceskaslova.txt"); // data/names.txt -
+        FileHandler fh = new FileHandler("data/names.txt"); 
 
 
         List<String> set = fh.ReadFileLines();
