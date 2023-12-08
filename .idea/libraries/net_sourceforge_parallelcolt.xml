@@ -1,0 +1,22 @@
+<component name="libraryTable">
+  <library name="net.sourceforge.parallelcolt" type="repository">
+    <properties maven-id="net.sourceforge.parallelcolt:parallelcolt:0.10.1" />
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/parallelcolt-0.10.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/jplasma-1.2.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/core-lapack-0.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/arpack_combined_all-0.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/jtransforms-2.4.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/junit-4.8.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/csparsej-1.1.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/optimization-1.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/netlib-java-0.9.3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/JKLU-1.0.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/BTFJ-1.0.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/AMDJ-1.0.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/COLAMDJ-1.0.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
