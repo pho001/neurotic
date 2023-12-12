@@ -1,9 +1,7 @@
 import cern.colt.matrix.tdouble.DoubleMatrix2D;
-import cern.colt.matrix.tdouble.DoubleMatrix3D;
 import cern.colt.matrix.tdouble.algo.DenseDoubleAlgebra;
 import cern.colt.matrix.tdouble.impl.DenseDoubleMatrix2D;
-import cern.colt.matrix.tdouble.impl.DenseDoubleMatrix3D;
-import cern.jet.math.Functions;
+
 
 
 
@@ -24,8 +22,6 @@ public class Tensor {
         public double[][] gradients;
         public String label;
 
-        double gamma;
-        double beta;
 
 
 
@@ -89,7 +85,7 @@ public class Tensor {
             out.localgradients=()->{
                 for (int i=0;i<this.rows;i++){
                     for (int j=0;j<cols;j++){
-                        this.gradients[i][j]=+1*out.gradients[i][j];
+                        this.gradients[i][j]+=1*out.gradients[i][j];
                         secondMatrix.gradients[i][j]+=1*out.gradients[i][j];
                     }
                 }
@@ -159,10 +155,10 @@ public class Tensor {
                         //this.gradients[i][j]+=-1*out.gradients[i][j];
                         this.gradients[i][j]+=out.gradients[i][j];
                         if (secondMatrix.rows==1){
-                            secondMatrix.gradients[0][j]+=-out.gradients[i][j];
+                            secondMatrix.gradients[0][j]-=out.gradients[i][j];
                         }
                         else if(secondMatrix.cols==1){
-                            secondMatrix.gradients[i][0]+=-out.gradients[i][j];
+                            secondMatrix.gradients[i][0]-=out.gradients[i][j];
                         }
                         else {
                             throw new IllegalArgumentException("Unable to broadcast. Denominator can be either row or column vector.");
@@ -343,8 +339,7 @@ public class Tensor {
         }
 
         public Tensor std(Tensor mean){
-            Tensor out=this.stdinternal(mean);
-            return out;
+            return this.stdinternal(mean);
         }
 
         public Tensor std(Dimension dim){
@@ -479,7 +474,7 @@ public class Tensor {
 
 
             out.localgradients=()->{
-                double [][] help=null;
+                double [][] help;
                 double n=0;
                 switch (dim){
                     case BYCOLS :
