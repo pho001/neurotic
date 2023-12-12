@@ -28,6 +28,7 @@ public class Tensor {
         double beta;
 
 
+
         public enum Join{
             LEFT,
             RIGHT,
@@ -177,7 +178,7 @@ public class Tensor {
 
 
 
-        public Tensor dot (Tensor secondMatrix) {
+        public Tensor mul (Tensor secondMatrix) {
             Tensor out = new Tensor(this.rows, secondMatrix.cols, Set.of(this, secondMatrix), "(" +this.label + "×" + secondMatrix.label+ ")" );
             //out.data=MathHelper.dot(this.data,secondMatrix.data);
             DoubleMatrix2D matrixA = new DenseDoubleMatrix2D(this.data);

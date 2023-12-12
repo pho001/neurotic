@@ -44,10 +44,10 @@ public class EmbeddingLayerSqueezed implements NLayer{
             for (int i=0;i<this.contextLength;i++){
                 Tensor X=new Tensor(input[depth].cols,EMB.rows,new HashSet<>(),"X"+i).oneHot(input[depth].data[i]);
                 if (this.out!=null){
-                    this.out[depth]=this.out[depth].join(X.dot(EMB), Tensor.Join.RIGHT);
+                    this.out[depth]=this.out[depth].join(X.mul(EMB), Tensor.Join.RIGHT);
                 }
                 else {
-                    this.out[depth]=X.dot(EMB);
+                    this.out[depth]=X.mul(EMB);
                 }
             }
         }

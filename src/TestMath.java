@@ -42,7 +42,7 @@ public class TestMath {
     }
 
     private static boolean testDot(){
-        SimpleMatrix test=new SimpleMatrix(MathHelper.dot(testMatrixA,testMatrixB));
+        SimpleMatrix test=new SimpleMatrix(MathHelper.mul(testMatrixA,testMatrixB));
         SimpleMatrix A=new SimpleMatrix(testMatrixA);
         SimpleMatrix B=new SimpleMatrix(testMatrixB);
         SimpleMatrix C=A.mult(B);

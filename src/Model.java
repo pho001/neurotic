@@ -27,41 +27,23 @@ public class Model {
         this.ds=ds;
         switch (arch) {
             case MLP -> {
-                this.topology=mlp(EmbeddingVectorSize,inputSize, outputSize,hiddenLayersNeurons,context,ds);
+                //this.topology=mlp(EmbeddingVectorSize,inputSize, outputSize,hiddenLayersNeurons,context,ds);
+                this.topology=new Mlp(EmbeddingVectorSize,inputSize, outputSize,hiddenLayersNeurons,context,ds.getAlphabetSize(),cfg.epsilon,cfg.momentum).topology();
             }
             case WAVENET -> {
                 //TODO:
                 //for WAVENET, just first amount of neurons is taken into account. Needs to be fixed;
                 //Also - groupSize should be hyperparameter. Needs to be fixed.
-                this.topology=wavenet(EmbeddingVectorSize,inputSize, 2,outputSize,hiddenLayersNeurons[0],ds);
+                //this.topology=wavenet(EmbeddingVectorSize,inputSize, 2,outputSize,hiddenLayersNeurons[0],ds);
+
+                this.topology=new Wavenet(EmbeddingVectorSize,inputSize,context,2,ds.getAlphabetSize(),hiddenLayersNeurons[0],ds.getAlphabetSize(),cfg.epsilon,cfg.momentum).topology();
             }
         }
+        HashSet<Tensor> parameters = parameters();
+
 
     }
 
-/*
-    public Tensor call(Tensor input){
-
-        for (BlockOfSequentialLayers block:this.topology){
-            block.setTrainingMode=this.setTrainingMode;
-            input=block.call(input);
-        }
-
-        return input;
-
-    }
-
-    public Tensor[] call(Tensor input){
-
-        for (BlockOfSequentialLayers block:this.topology){
-            block.setTrainingMode=this.setTrainingMode;
-            input=block.call(input);
-        }
-        return input;
-
-    }
-
- */
 
     public Tensor [] call (Tensor[] input){
 
@@ -85,99 +67,6 @@ public class Model {
         this.setTrainingMode=true;
     }
 
-    public void buildTopo(BlockOfSequentialLayers lastBlock, List<BlockOfSequentialLayers> topoList, Set<BlockOfSequentialLayers> visited){
-        if (!visited.contains(lastBlock)){
-            visited.add(lastBlock);
-            for (BlockOfSequentialLayers parent : lastBlock._prev){
-                buildTopo(parent, topoList, visited);
-            }
-            topoList.add(lastBlock);
-
-        }
-    }
-
-    //TODO: move architectures to separate classes, maybe behind interface
-    private List <BlockOfSequentialLayers> mlp (int EmbeddingVectorSize, int inputSize, int outputSize, int[] hiddenLayersNeurons, int contextLength, Dataset ds){
-        //Embedding layer
-
-        BlockOfSequentialLayers parent=new BlockOfSequentialLayers(List.of(
-                new EmbeddingLayer(ds.getAlphabetSize(),EmbeddingVectorSize, contextLength),
-                new FlattenLayer(contextLength)
-        ), "Embedding layer");
-        int prevLayerNeurons=EmbeddingVectorSize*contextLength;
-
-        //construct hidden layers
-        for (int i=0;i<hiddenLayersNeurons.length;i++){
-
-            int neurons=hiddenLayersNeurons[i];
-            if (i==0){
-                parent = new BlockOfSequentialLayers(List.of(
-                        new LinearLayer(prevLayerNeurons, neurons,true),
-                        new BatchNormLayer(neurons, this.cfg.epsilon, this.cfg.momentum),
-                        new NonLinearLayer(NonLinearLayer.Nonlinearity.TANH)
-                ), "BatchNorm layer " + i).setParent(Set.of(parent));
-            }
-            else {
-                parent = new BlockOfSequentialLayers(List.of(
-                        new LinearLayer(prevLayerNeurons, neurons, true),
-                        new NonLinearLayer(NonLinearLayer.Nonlinearity.TANH)
-                ), "Hidden layer " + i).setParent(Set.of(parent));
-            }
-            prevLayerNeurons=neurons;
-        }
-
-        //construct output layer
-        parent = new BlockOfSequentialLayers(List.of(
-                new LinearLayer(prevLayerNeurons,outputSize,true)
-        ), "Output layer").setParent(Set.of(parent));
-
-        return parent.buildTopo();
-    }
-
-    private List <BlockOfSequentialLayers> wavenet (int embeddingVectorSize, int inputSize, int groupSize,int outputSize, int neurons, Dataset ds){
-
-        //transform input Tensor X (context,batch) -> Tensor [] X (context, batch, vocabsize)
-
-        //----->Tensor X (context,batch)
-        BlockOfSequentialLayers parent = new BlockOfSequentialLayers(List.of(
-                new EmbeddingLayer(inputSize,embeddingVectorSize,this.contextSize)
-        ),"Embedding Layer");
-
-        //----->Tensor [] X (context,batch, vocabsize)
-
-        int prevLayerNeurons=embeddingVectorSize;
-
-        int levels=(int) (Math.log(this.contextSize) / Math.log(groupSize));
-
-        for (int i=0;i<levels;i++){
-            if (i<levels){
-                prevLayerNeurons=prevLayerNeurons*groupSize;
-                neurons=neurons;    //meh
-            }
-            else {
-                neurons=neurons;    //last layer is output layer
-            }
-
-
-
-            //prevLayerNeurons=(i+1)*embeddingVectorSize*groupSize;
-            parent = new BlockOfSequentialLayers(List.of(
-                    new FlattenLayer(groupSize),
-                    //----->Tensor[] X(context/groupsize,batchSize,vocabsize)
-                    new LinearLayer(prevLayerNeurons,neurons,false),
-                    //----->Tensor[] X(context/groupsize,prevLatyerNerurons,Neurons)
-                    new BatchNormLayer(neurons,this.cfg.epsilon,this.cfg.momentum),
-                    //----->Tensor[] X(context/groupsize,prevLatyerNerurons,Neurons)
-                    new NonLinearLayer(NonLinearLayer.Nonlinearity.TANH)
-            ),"Concated linear layers").setParent(Set.of(parent));
-            prevLayerNeurons=neurons;
-        }
-        //construct output layer
-        parent = new BlockOfSequentialLayers(List.of(
-                new LinearLayer(prevLayerNeurons,ds.getAlphabetSize(),true)
-        ), "Output layer").setParent(Set.of(parent));
-        return parent.buildTopo();
-    }
 
     public void train(int epochs, double descent, int batchSize,Dataset ds,int displayFrequency){
         this.batchSize=batchSize;

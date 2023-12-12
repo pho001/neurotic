@@ -55,11 +55,11 @@ public class LinearLayer implements NLayer{
 
         for (int i=0;i<X.length;i++) {
             if (this.useBias) {
-                //this.out[i] = X[i].dot(this.weights[i]).addb(this.bias[i]);
-                this.out[i] = X[i].dot(this.weights).addb(this.bias);
+                //this.out[i] = X[i].mul(this.weights[i]).addb(this.bias[i]);
+                this.out[i] = X[i].mul(this.weights).addb(this.bias);
             } else {
-                //this.out[i] = X[i].dot(this.weights[i]);
-                this.out[i] = X[i].dot(this.weights);
+                //this.out[i] = X[i].mul(this.weights[i]);
+                this.out[i] = X[i].mul(this.weights);
             }
         }
         return this.out;

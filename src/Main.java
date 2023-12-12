@@ -8,7 +8,7 @@ public class Main {
 
 
         //TODO: data initialization will be moved to MODEL
-        FileHandler fh = new FileHandler("data/names.txt"); 
+        FileHandler fh = new FileHandler("data/names.txt");
 
 
         List<String> set = fh.ReadFileLines();
@@ -41,13 +41,13 @@ public class Main {
                 24,
                 ds.getAlphabetSize(),
                 ds.getAlphabetSize(),
-                new int[]{300, 300},
+                new int[]{200,200},
                 context,
                 Model.architecture.WAVENET,
                 ds,
                 cfg);
 
-        M.train(100000, 0.1, 32, ds, 100);
+        M.train(50000, 0.1, 32, ds, 100);
         M.generate(100);
         M.displayGraph(200);
         System.out.println("Model parameters:" + M.getParametersCount());

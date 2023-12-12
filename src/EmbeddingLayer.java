@@ -36,7 +36,7 @@ public class EmbeddingLayer implements NLayer{
             //for (int i=0;i<this.contextLength;i++) {
                 Tensor X = new Tensor(input[depth].data, new HashSet<>(), "X" + depth);
             //}
-                this.out[depth]=X.dot(EMB);
+                this.out[depth]=X.mul(EMB);
 
         }
 

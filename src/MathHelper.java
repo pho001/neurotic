@@ -144,7 +144,7 @@ public class MathHelper {
         return out;
     }
 
-    public static double[][] dot(double[][] firstMatrix,double [][] secondMatrix){
+    public static double[][] mul(double[][] firstMatrix,double [][] secondMatrix){
         if (firstMatrix[0].length != secondMatrix.length) {
             throw new IllegalArgumentException("Dimensions don't match; multiplication is not possible");
         }
