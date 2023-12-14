@@ -23,7 +23,6 @@ public class Model {
         this.arch=arch;
         this.contextSize=context;
 
-
         this.ds=ds;
         switch (arch) {
             case MLP -> {
@@ -68,8 +67,9 @@ public class Model {
     }
 
 
-    public void train(int epochs, double descent, int batchSize,Dataset ds,int displayFrequency){
+    public void train(int epochs, double descent, int batchSize,Dataset ds,int displayFrequency, OptimizerFactory.Opt method){
         this.batchSize=batchSize;
+        IOptimizer opt=OptimizerFactory.create(descent,method);
         Tensor loss=null;
         lossi=new double[epochs];
         this.setTrainingMode=true;
@@ -111,7 +111,7 @@ public class Model {
             }
             lossi[i]=loss.data[0][0];
             loss.backward();
-            this.updateParameters(descent);
+            this.updateParameters(descent,opt,i);
             this.resetGradients();
             long endTime = System.currentTimeMillis();
             long millis = endTime-startTime;
@@ -131,14 +131,20 @@ public class Model {
         }
     }
 
-    private void updateParameters(double descent){
+    private void updateParameters(double descent,IOptimizer opt,int epoch){
         HashSet<Tensor> parameters = parameters();
+
         for (Tensor p:parameters){
+            opt.update(p,epoch);
+            /*
             for (int i = 0; i < p.data.length; i++) {
                 for (int j = 0; j < p.data[0].length; j++) {
                     p.data[i][j] += -descent * p.gradients[i][j];
+
                 }
             }
+
+             */
         }
     }
 
