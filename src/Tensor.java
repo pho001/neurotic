@@ -22,6 +22,11 @@ public class Tensor {
         public double[][] gradients;
         public String label;
 
+        public double [][] means=null;          //means for adam optimizer. Will be initialized when needed.
+        public double [][] variances=null;      //variances for adam optimizer. Will be initialized when needed.
+
+        public String operation;
+
 
 
 
@@ -61,6 +66,7 @@ public class Tensor {
             this.localgradients=()->{};
             this.gradients=new double[rows][cols];
             this.label=label;
+            this.operation=label;
 
         }
 
@@ -73,6 +79,7 @@ public class Tensor {
             this.localgradients=()->{};
             this.gradients=new double[rows][cols];
             this.label=label;
+            this.operation=label;
         }
 
 
@@ -81,7 +88,7 @@ public class Tensor {
 
 
             Tensor out = new Tensor(MathHelper.add(this.data,secondMatrix.data), Set.of(this,secondMatrix),this.label+"+"+secondMatrix.label);
-
+            out.operation="+";
             out.localgradients=()->{
                 for (int i=0;i<this.rows;i++){
                     for (int j=0;j<cols;j++){
@@ -99,6 +106,7 @@ public class Tensor {
         //addition with broadcasting
         public Tensor addb (Tensor secondMatrix){
             Tensor out = new Tensor(MathHelper.addb(this.data,secondMatrix.data), Set.of(this,secondMatrix),this.label+"+"+secondMatrix.label);
+            out.operation="+";
             //gradients for broadcasting around second dimension must be added
             out.localgradients=()->{
 
@@ -127,7 +135,7 @@ public class Tensor {
 
         public Tensor sub (Tensor secondMatrix){
             Tensor out=new Tensor(this.rows, this.cols, Set.of(this,secondMatrix),this.label+"-"+secondMatrix.label);
-
+            out.operation="-";
             out.data=MathHelper.sub(this.data, secondMatrix.data);
 
             out.localgradients=()->{
@@ -147,6 +155,7 @@ public class Tensor {
 
         public Tensor subb (Tensor secondMatrix){
             Tensor out=new Tensor(this.rows, this.cols, Set.of(this,secondMatrix),this.label+"-"+secondMatrix.label);
+            out.operation="-";
             out.data=MathHelper.subb(this.data, secondMatrix.data);
             //gradients for broadcasting around second dimension must be added
             out.localgradients=()->{
@@ -176,6 +185,7 @@ public class Tensor {
 
         public Tensor mul (Tensor secondMatrix) {
             Tensor out = new Tensor(this.rows, secondMatrix.cols, Set.of(this, secondMatrix), "(" +this.label + "×" + secondMatrix.label+ ")" );
+            out.operation="×";
             //out.data=MathHelper.dot(this.data,secondMatrix.data);
             DoubleMatrix2D matrixA = new DenseDoubleMatrix2D(this.data);
             DoubleMatrix2D matrixB = new DenseDoubleMatrix2D(secondMatrix.data);

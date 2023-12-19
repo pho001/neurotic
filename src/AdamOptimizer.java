@@ -36,8 +36,8 @@ public class AdamOptimizer implements IOptimizer{
                 parameter.variances[i][j] = beta2 * parameter.variances[i][j] + (1 - beta2) * Math.pow(parameter.gradients[i][j], 2);
 
                 //correction
-                double mHat = parameter.means[i][j] / (1 - Math.pow(beta1, timeStep+1));         //timeStep can't start at 0, denominator would be 0
-                double vHat = parameter.variances[i][j] / (1 - Math.pow(beta2, timeStep+1));
+                double mHat = parameter.means[i][j] / (1 - Math.pow(beta1, timeStep));         //timeStep can't start at 0, denominator would be 0
+                double vHat = parameter.variances[i][j] / (1 - Math.pow(beta2, timeStep));
 
                 // Update parameters
                 parameter.data[i][j] -= learningRate * mHat / (Math.sqrt(vHat) + epsilon);

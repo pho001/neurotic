@@ -20,34 +20,6 @@ public class BlockOfSequentialLayers {
 
     public Set<BlockOfSequentialLayers> _prev=new HashSet<>();
 
-    public Tensor call(Tensor input){
-        //ugh, this is hack to concat outputs from previous blocks
-        /*
-
-        if (join!=null){
-            Iterator<BlockOfSequentialLayers> iterator = _prev.iterator();
-            while (iterator.hasNext()) {
-                BlockOfSequentialLayers current = iterator.next();
-
-                if (iterator.hasNext()) {
-                    BlockOfSequentialLayers next = iterator.next();
-                    input=current.outputTensor[0].join(next.outputTensor[0],join);
-
-                }
-            }
-
-
-        }
-        for (NLayer layer:this.layers){
-            layer.setTrainingMode(this.setTrainingMode);
-            input=layer.call(input);
-        }
-        this.outputTensor=input;
-        return input;
-
-         */
-        return null;
-    }
 
     public Tensor [] call(Tensor input[]){
         //ugh, this is hack to concat outputs from previous blocks

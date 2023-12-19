@@ -10,7 +10,7 @@ public class OptimizerFactory {
                 return new DescentOptimizer(learningRate);
             }
             case ADAM -> {
-                return new AdamOptimizer(0.9, 0.999, 0.01, 1e-8);
+                return new AdamOptimizer(0.9, 0.999, learningRate, 1e-8);
             }
             default -> {
                 throw new RuntimeException( "Wrong Optimalization parameter selected");

@@ -13,14 +13,7 @@ public class FlattenLayer implements NLayer{
         this.howMuch=howMuch;
 
     }
-    /*
-    @Override
-    public Tensor[] call(Tensor input){
-        //todo: implement 2d matrix reduction
-        return null;
-    }
 
-     */
     @Override
     public Tensor[] call(Tensor [] input){
         if (input.length%howMuch!=0){

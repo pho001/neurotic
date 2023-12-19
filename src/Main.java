@@ -37,17 +37,17 @@ public class Main {
                 cfg);
 
  */
-        Model M = new Model(
+        IModel M = Model.create(
                 24,
                 ds.getAlphabetSize(),
                 ds.getAlphabetSize(),
-                new int[]{200,200},
+                new int[]{100,100},
                 context,
-                Model.architecture.WAVENET,
+                Model.architecture.MLP,
                 ds,
                 cfg);
 
-        M.train(50000, 0.1, 32, ds, 100);
+        M.train(10000, 1e-1, 32, ds, 100, OptimizerFactory.Opt.DESC);
         M.generate(100);
         M.displayGraph(200);
         System.out.println("Model parameters:" + M.getParametersCount());
