@@ -2,6 +2,15 @@ import java.util.List;
 
 public interface IModel {
 
-    public List <BlockOfSequentialLayers> topology ();
+    public List <BlockOfSequentialLayers> topologyBuilder ();
+    public void generate(int nSamples);
+    public void train(int i, double v, int i1, Dataset ds, int i2, OptimizerFactory.Opt desc);
+    public void saveParameters(String path);
+    public void loadParameters(String path);
+    public void predict(double[] inputs);
+    public void displayGraph(int reducedRow);
+    public int getParametersCount();
+    public Tensor [] call (Tensor[] input);
+    public double splitLoss(Dataset.setType type);
 
 }

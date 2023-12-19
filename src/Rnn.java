@@ -3,25 +3,26 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-public class Mlp extends IModelBase{
+public class Rnn extends IModelBase{
+    int alphabetSize;
+    int embeddingVectorSize;
 
-        int alphabetSize;
-        int embeddingVectorSize;
+    int contextLength;
+    double epsilon;
+    double momentum;
+    int[] hiddenLayersNeurons;
+    int outputSize;
+    int inputSize;
+    public List<BlockOfSequentialLayers> topo;
+    boolean setToTrainingMode=false;
 
-        int contextLength;
-        double epsilon;
-        double momentum;
-        int[] hiddenLayersNeurons;
-        int outputSize;
-        public List<BlockOfSequentialLayers> topo;
-        boolean setToTrainingMode=false;
+    double [] lossi;
 
-        double [] lossi;
+    int batchSize;
+    Dataset ds;
 
-        int batchSize;
-        Dataset ds;
 
-    public Mlp(int embeddingVectorSize, int inputSize, int outputSize, int[] hiddenLayersNeurons, int contextLength, int alphabetSize, double epsilon, double momentum){
+    public Rnn(int embeddingVectorSize, int inputSize, int outputSize, int[] hiddenLayersNeurons, int contextLength, int alphabetSize, double epsilon, double momentum){
         this.alphabetSize=alphabetSize;
         this.embeddingVectorSize=embeddingVectorSize;
         this.contextLength=contextLength;
@@ -29,48 +30,50 @@ public class Mlp extends IModelBase{
         this.epsilon=epsilon;
         this.hiddenLayersNeurons=hiddenLayersNeurons;
         this.outputSize=outputSize;
+        this.inputSize=inputSize;
         topologyBuilder();
 
     }
+
     @Override
-    public List <BlockOfSequentialLayers> topologyBuilder (){
+    public List<BlockOfSequentialLayers> topologyBuilder() {
         //Embedding layer
+        BlockOfSequentialLayers parent = new BlockOfSequentialLayers(List.of(
+                new EmbeddingLayer(inputSize, embeddingVectorSize, contextLength)
+                //new BatchNormLayer(100,epsilon,momentum)
+        ), "Embedding Layer");
+        int prevLayerNeurons = embeddingVectorSize;
 
-        BlockOfSequentialLayers parent=new BlockOfSequentialLayers(List.of(
-                new EmbeddingLayer(alphabetSize,embeddingVectorSize, contextLength),
-                new FlattenLayer(contextLength)
-        ), "Embedding layer");
-        int prevLayerNeurons=embeddingVectorSize*contextLength;
-
-        //construct hidden layers
-        for (int i=0;i<hiddenLayersNeurons.length;i++){
-
-            int neurons=hiddenLayersNeurons[i];
-            if (i==0){
+        //Recurrent layers construction
+        for (int j = 0; j < hiddenLayersNeurons.length; j++){
+            if (j == 0) {
                 parent = new BlockOfSequentialLayers(List.of(
-                        new LinearLayer(prevLayerNeurons, neurons,true),
-                        new BatchNormLayer(neurons, epsilon, momentum),
+                        new LinearLayer(prevLayerNeurons, hiddenLayersNeurons[j], false),
+                        new OneDirectionalRNNLayer(hiddenLayersNeurons[j], false),
                         new NonLinearLayer(NonLinearLayer.Nonlinearity.TANH)
-                ), "BatchNorm layer " + i).setParent(Set.of(parent));
+                ), "Hidden layer : "+j).setParent(Set.of(parent));
             }
             else {
                 parent = new BlockOfSequentialLayers(List.of(
-                        new LinearLayer(prevLayerNeurons, neurons, true),
+                        new OneDirectionalRNNLayer(hiddenLayersNeurons[j], false),
                         new NonLinearLayer(NonLinearLayer.Nonlinearity.TANH)
-                ), "Hidden layer " + i).setParent(Set.of(parent));
+                ), "Hidden layer : "+j).setParent(Set.of(parent));
             }
-            this.topo=parent.buildTopo();
-            return this.topo;
+
+            prevLayerNeurons=hiddenLayersNeurons[j];
+            if(j== hiddenLayersNeurons.length-1){
+                parent = new BlockOfSequentialLayers(List.of(
+                        new LinearLayer(prevLayerNeurons, outputSize, true)
+                ), "Output layer").setParent(Set.of(parent));
+            }
         }
-
-        //construct output layer
-        parent = new BlockOfSequentialLayers(List.of(
-                new LinearLayer(prevLayerNeurons,outputSize,true)
-        ), "Output layer").setParent(Set.of(parent));
-
         this.topo=parent.buildTopo();
         return this.topo;
+
     }
+
+
+
 
     @Override
     public void train(int epochs, double descent, int batchSize,Dataset ds,int displayFrequency, OptimizerFactory.Opt method){
@@ -105,12 +108,22 @@ public class Mlp extends IModelBase{
             }
             //Tensor inputData=new Tensor(aInputs,new HashSet<>(),"X");
             Tensor labels=new Tensor(batchSize,ds.getAlphabetSize(),new HashSet<>(),"Y").oneHot(aLabels[0]);
-            Tensor[] out=call(inputData);
-            loss=out[0].categoricalEntropyLoss(labels);
-            lossi[i]=loss.data[0][0];
+            Tensor[] out=this.call(inputData);
+
+            for (int o=0;o<out.length;o++){
+                labels=new Tensor(batchSize,ds.getAlphabetSize(),new HashSet<>(),"Y"+o).oneHot(batch[o]);
+                if (o==0){
+                    loss=out[o].categoricalEntropyLoss(labels);
+                }
+                else{
+                    loss=loss.add(out[o].categoricalEntropyLoss(labels));
+                }
+                lossi[i]=loss.data[0][0];
+
+            }
             loss.backward();
-            updateParameters(descent,opt,i);
-            resetGradients();
+            this.updateParameters(descent,opt,i);
+            this.resetGradients();
             long endTime = System.currentTimeMillis();
             long millis = endTime-startTime;
             if (displayFrequency>0 && i%displayFrequency==0){
@@ -121,6 +134,7 @@ public class Mlp extends IModelBase{
         }
 
     }
+
 
     @Override
     public void generate(int nSamples){
@@ -160,7 +174,6 @@ public class Mlp extends IModelBase{
         }
 
     }
-
 
     @Override
     protected List<BlockOfSequentialLayers> getTopo(){
@@ -221,13 +234,22 @@ public class Mlp extends IModelBase{
             //Tensor inputData=new Tensor(aInputs,new HashSet<>(),"X");
             Tensor labels=new Tensor(batchSize,ds.getAlphabetSize(),new HashSet<>(),"Y").oneHot(aLabels[0]);
             Tensor[] out=this.call(inputData);
-            loss=loss.add(out[0].categoricalEntropyLoss(labels));
-            lossSum+=loss.data[0][0];
+            for (int o=0;o<out.length;o++){
+                labels=new Tensor(batchSize,ds.getAlphabetSize(),new HashSet<>(),"Y"+o).oneHot(batch[o]);
+                if (o==0){
+                    loss=out[o].categoricalEntropyLoss(labels);
+                }
+                else{
+                    loss=loss.add(out[o].categoricalEntropyLoss(labels));
+                }
+                //lossi[i]=loss.data[0][0];
+                lossSum+=loss.data[0][0];
+
+            }
 
         }
         return lossSum/nBatches;
     }
-
 
 
 }
