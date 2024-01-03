@@ -138,6 +138,7 @@ public class Wavenet extends IModelBase{
 
     @Override
     public void generate(int nSamples){
+        this.setToTrainingMode = false;
         for (int i = 0; i < nSamples; i++) {
             String output = "";
             String context = "";
@@ -235,7 +236,7 @@ public class Wavenet extends IModelBase{
             //Tensor inputData=new Tensor(aInputs,new HashSet<>(),"X");
             Tensor labels=new Tensor(batchSize,ds.getAlphabetSize(),new HashSet<>(),"Y").oneHot(aLabels[0]);
             Tensor[] out=this.call(inputData);
-            loss=loss.add(out[0].categoricalEntropyLoss(labels));
+            loss=out[0].categoricalEntropyLoss(labels);
             lossSum+=loss.data[0][0];
 
         }
