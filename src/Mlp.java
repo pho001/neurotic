@@ -59,8 +59,7 @@ public class Mlp extends IModelBase{
                         new NonLinearLayer(NonLinearLayer.Nonlinearity.TANH)
                 ), "Hidden layer " + i).setParent(Set.of(parent));
             }
-            this.topo=parent.buildTopo();
-            return this.topo;
+            prevLayerNeurons=neurons;
         }
 
         //construct output layer
@@ -85,7 +84,6 @@ public class Mlp extends IModelBase{
             throw new RuntimeException("Training data dimension is too low, it doesn't contain labels");
         }
         int contextLength=0;
-
 
         for (int i=0;i<epochs;i++){
             long startTime = System.currentTimeMillis();
@@ -124,6 +122,7 @@ public class Mlp extends IModelBase{
 
     @Override
     public void generate(int nSamples){
+        setToTrainingMode=false;
         for (int i = 0; i < nSamples; i++) {
             String output = "";
             String context = "";
@@ -142,7 +141,8 @@ public class Mlp extends IModelBase{
 
                 }
                 //Tensor X=new Tensor (cArray,new HashSet<>(),"X");
-                Tensor P=this.call(X)[0].softMax();
+                Tensor [] O=call(X);
+                Tensor P=O[0].softMax();
                 int[] vector= MathHelper.generateMultinomialVector(1, P.data[0], random);
                 output=output+ds.itostr(vector);
                 if (vector[0]==0){
