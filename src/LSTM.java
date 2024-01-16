@@ -3,28 +3,29 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-public class Rnn extends IModelBase{
+public class LSTM extends IModelBase{
     int alphabetSize;
     int embeddingVectorSize;
 
     int contextLength;
     double epsilon;
     double momentum;
-    int[] hiddenStates;
+
     int outputSize;
     int inputSize;
     public List<BlockOfSequentialLayers> topo;
     boolean setToTrainingMode=false;
+    int [] hiddenStates;
+    int inputNeurons;
 
     double [] lossi;
 
     int batchSize;
     Dataset ds;
-    int inputNeurons;
     IEncoder encoder;
 
 
-    public Rnn(int embeddingVectorSize, int inputSize, int outputSize, int inputNeurons,int[] hiddenStates, int contextLength, int alphabetSize, double epsilon, double momentum, String alphabet,TokenizerFactory.Enc encoder){
+    public LSTM(int embeddingVectorSize, int inputSize, int outputSize, int inputNeurons,int[] hiddenStates, int contextLength, int alphabetSize, double epsilon, double momentum, String alphabet,TokenizerFactory.Enc encoder){
         this.alphabetSize=alphabetSize;
         this.embeddingVectorSize=embeddingVectorSize;
         this.contextLength=contextLength;
@@ -35,7 +36,7 @@ public class Rnn extends IModelBase{
         this.inputSize=inputSize;
         this.inputNeurons=inputNeurons;
         topologyBuilder();
-        this.encoder=TokenizerFactory.create(TokenizerFactory.Enc.ALPHABET, alphabet);
+        this.encoder=TokenizerFactory.create(encoder,  alphabet);
 
     }
 
@@ -52,16 +53,15 @@ public class Rnn extends IModelBase{
         for (int j = 0; j < hiddenStates.length; j++){
             if (j == 0) {
                 parent = new BlockOfSequentialLayers(List.of(
-                        new LinearLayer(prevLayerNeurons, hiddenStates[j], false),
-                        new OneDirectionalRNNLayer(hiddenStates[j], contextLength, false)
+                        //new LinearLayer(prevLayerNeurons, inputNeurons, true),
+                        new OneDirectionalLSTMLayer(true, hiddenStates[j])
                         //new NonLinearLayer(NonLinearLayer.Nonlinearity.TANH)
 
                 ), "Hidden layer : "+j).setParent(Set.of(parent));
             }
             else {
                 parent = new BlockOfSequentialLayers(List.of(
-                        new LinearLayer(prevLayerNeurons, hiddenStates[j], false),
-                        new OneDirectionalRNNLayer(hiddenStates[j], contextLength, false)
+                        new OneDirectionalLSTMLayer(true,hiddenStates[j])
                         //new NonLinearLayer(NonLinearLayer.Nonlinearity.TANH)
                 ), "Hidden layer : "+j).setParent(Set.of(parent));
             }
@@ -82,7 +82,7 @@ public class Rnn extends IModelBase{
 
 
     @Override
-    public void train(int epochs, double descent, int batchSize,Dataset ds,int displayFrequency, OptimizerFactory.Opt method, List<String> inputs,List<String> targets){
+    public void train(int epochs, double descent, int batchSize,Dataset ds,int displayFrequency, OptimizerFactory.Opt method,List<String> inputs,List<String> targets){
         this.batchSize=batchSize;
         this.ds=ds;
         IOptimizer opt=OptimizerFactory.create(descent,method);
@@ -94,7 +94,7 @@ public class Rnn extends IModelBase{
         long kAverage=0;
 
         int contextLength=0;
-
+        int epochsLasted=0;
 
         for (int i=0;i<epochs;i++){
             long startTime = System.currentTimeMillis();
@@ -165,7 +165,6 @@ public class Rnn extends IModelBase{
             }
 
         }
-
     }
 
 
@@ -190,18 +189,9 @@ public class Rnn extends IModelBase{
 
                 }
                 //Tensor X=new Tensor (cArray,new HashSet<>(),"X");
-                Tensor [] inputData=new Tensor[contextLength];
-                Tensor P=null;
-                for (int t=0;t<contextLength;t++){
-                    X[0]=new Tensor (1, alphabetSize, new HashSet<>(),"X").oneHot(new double [] {this.ds.strtoi(context.charAt(t))});
-                    Tensor out[]=call(X);
-                    if (t==contextLength-1){
-                        P=out[0].softMax();
+                Tensor [] O=call(X);
 
-                    }
-
-                }
-
+                Tensor P=O[contextLength-1].softMax();
                 int[] vector= MathHelper.generateMultinomialVector(1, P.data[0], random);
                 output=output+ds.itostr(vector);
                 if (vector[0]==0){
@@ -257,28 +247,23 @@ public class Rnn extends IModelBase{
         int nBatches=(int)(Math.floor((double)setSize/this.batchSize));
         //TODO: needs to be fixed. Last batch, which is smaller then batchSize is ignored. Data preparation needs to be moved out of this class
 
-        for (int i=0;i<nBatches;i++){
-            int startIndex=i*batchSize;
-            if (i*batchSize+batchSize>setSize){
-                batchSize=(i*nBatches+batchSize)-setSize;
+        for (int i=0;i<nBatches;i++) {
+            int startIndex = i * batchSize;
+            if (i * batchSize + batchSize > setSize) {
+                batchSize = (i * nBatches + batchSize) - setSize;
             }
-            List<String> batch=ds.giveMeBatch(batchSize,startIndex,Dataset.setType.TRAIN); //r:context, c:batch
-            double [][] inputsEncoded=null;
-            double [][] targetsEncoded=null;
+            List<String> batch = ds.giveMeBatch(batchSize, startIndex, Dataset.setType.TRAIN); //r:context, c:batch
+            double[][] inputsEncoded = null;
+            double[][] targetsEncoded = null;
             //row = batch, column= context
-            for (int b=0;b<batch.size();b++){
-                inputsEncoded[b]=encoder.encode(batch.get(b).toCharArray());
-                targetsEncoded[b]=encoder.encode(batch.get(b).toCharArray());
+            for (int b = 0; b < batch.size(); b++) {
+                inputsEncoded[b] = encoder.encode(batch.get(b).toCharArray());
+                targetsEncoded[b] = encoder.encode(batch.get(b).toCharArray());
             }
 
             //row = context, row= batch
-            double [][] inputsTransposed=MathHelper.transp(inputsEncoded);
-            double [][] targetsTransposed=MathHelper.transp(inputsEncoded);
-
-            //tbd
-
-            lossSum+=loss.data[0][0];
-
+            double[][] inputsTransposed = MathHelper.transp(inputsEncoded);
+            double[][] targetsTransposed = MathHelper.transp(inputsEncoded);
         }
         return lossSum/nBatches;
     }

@@ -7,10 +7,10 @@ public class Dataset {
     private List<String> dev;
     private List<String> val;
 
-    public int[][] wholeSet;
-    public int[][] trainSet;
-    public int[][] devSet;
-    public int[][] testSet;
+    public List<String> wholeSet;
+    public List<String> trainSet;
+    public List<String> devSet;
+    public List<String> testSet;
 
     private double devRatio=0.1;
     private double testRatio=0.1;
@@ -45,7 +45,7 @@ public class Dataset {
 
     }
 
-    public int[][] setNgrams(List <String> lines,int context){
+    public List<String> setNgrams(List <String> lines,int context){
 
         List<String> ngrams = new ArrayList<>();
 
@@ -68,34 +68,21 @@ public class Dataset {
             }
 
         }
-        int [][] out = new int[context+1][ngrams.size()];
 
-
-
-        for(int i=0;i<ngrams.size();i++){
-            for (int j = 0; j < ngrams.get(i).length() - 1; j++) {
-
-                out[j][i]=strtoi(ngrams.get(i).charAt(j));
-
-
-            }
-            out[context][i]=strtoi(ngrams.get(i).charAt(context));
-
-        }
-        return out;
+        return ngrams;
 
     }
 
 
 
 
-    public int[][] getTrainingSet() {
+    public List<String> getTrainingSet() {
         return this.trainSet;
     }
-    public int[][] getTestSet() {
+    public List<String> getTestSet() {
         return this.testSet;
     }
-    public int[][] getDevSet() {
+    public List<String> getDevSet() {
         return this.trainSet;
     }
 
@@ -142,8 +129,10 @@ public class Dataset {
         return this.alphabet.length();
     }
 
-    public double[][] giveMeRandomBatch(setType which,int batchSize){
-        int [][] source=null;
+    public String getAlphabet(){ return this.alphabet;}
+
+    public List<String> giveMeRandomBatch(setType which,int batchSize){
+        List<String> source=null;
         switch (which) {
             case TRAIN :
                 source=this.trainSet;
@@ -156,21 +145,18 @@ public class Dataset {
                 break;
         }
 
-        double [][] out=new double [source.length][batchSize];
         Random rand=new Random();
-        for (int i=0;i<batchSize;i++){
-            int randIndex=rand.nextInt(source[0].length);
-            for (int j=0;j<source.length;j++){
-                out[j][i]=source[j][randIndex];
-                //out[i][j]=source[randIndex][j];
-            }
-        }
+        List<String> out=new ArrayList<>();
 
+        for (int i=0;i< batchSize;i++){
+            int randIndex=rand.nextInt(source.size());
+            out.add(source.get(i));
+        }
         return out;
     }
 
-    public double[][] giveMeBatch(int batchSize, int startIndex, setType which){
-        int [][] source=null;
+    public List<String> giveMeBatch(int batchSize, int startIndex, setType which){
+        List<String> source=null;
         switch (which) {
             case TRAIN :
                 source=this.trainSet;
@@ -183,45 +169,41 @@ public class Dataset {
                 break;
         }
 
-        double [][] out=new double [source.length][batchSize];
+        List<String> out=new ArrayList<>();
 
-        for (int i=0;i< source.length;i++){
-            int col=0;
-            for (int j=startIndex;j<startIndex+batchSize;j++){
-                out[i][col]=source[i][j];
-                col++;
-            }
+        for (int i=startIndex;i< startIndex+batchSize;i++){
+            out.add(source.get(i));
         }
         return out;
     }
 
-    public int[][] constructSet(setType which){
+    public List<String> constructSet(setType which){
         int bottomIndex=0;
-        int upperIndex=this.wholeSet[0].length;
+        int maxIndex=this.wholeSet.size();
+        int upperIndex=0;
+
         switch (which) {
             case TRAIN :
-                upperIndex=(int)Math.round(this.wholeSet[0].length*trainRatio);
+                upperIndex=(int)Math.round(maxIndex*trainRatio);
             break;
             case TEST  :
-                upperIndex=(int)Math.round(this.wholeSet[0].length*(trainRatio+testRatio));
-                bottomIndex=(int)Math.round(this.wholeSet[0].length*(trainRatio));
+                upperIndex=(int)Math.round(maxIndex*(trainRatio+testRatio));
+                bottomIndex=(int)Math.round(maxIndex*(trainRatio));
 
             break;
             case DEV :
-                bottomIndex=(int)Math.round(this.wholeSet[0].length*(trainRatio+testRatio));
+                bottomIndex=(int)Math.round(maxIndex*(trainRatio+testRatio));
             break;
         }
 
-        int [][] out=new int [this.wholeSet.length][upperIndex-bottomIndex];
+        List<String> out=new ArrayList<>();
         for (int i=bottomIndex;i<upperIndex;i++){
-            for (int j=0;j<this.wholeSet.length;j++){
-                out[j][i-bottomIndex]=this.wholeSet[j][i];
-            }
+                out.add(this.wholeSet.get(i));
         }
         return out;
     }
-    public int[][] giveMeSet(setType which){
-        int [][] source=null;
+    public List<String> giveMeSet(setType which){
+        List<String> source=null;
         switch (which) {
             case TRAIN :
                 source=this.trainSet;

@@ -25,6 +25,15 @@ public class Main {
         int context = 8;
         Dataset ds = new Dataset(set, context);
         NNConfiguration cfg = new NNConfiguration(); //this is dumb and has to be removed;
+        List<String> inputs=new ArrayList<>();
+        List<String> labels=new ArrayList<>();
+        List<String> dataset=ds.giveMeSet(Dataset.setType.TRAIN);
+
+        for (int i=0;i<dataset.size();i++){
+            String str= dataset.get(i);
+            inputs.add(str.substring(0,context));
+            labels.add(str.substring(context,context+1)); //last character is target
+        }
 /*
         Model M=new Model(
                 10,
@@ -41,13 +50,15 @@ public class Main {
                 24,
                 ds.getAlphabetSize(),
                 ds.getAlphabetSize(),
-                new int[]{100,100},
+                new int[]{200,200},
                 context,
                 Model.architecture.MLP,
                 ds,
-                cfg);
+                cfg,
+                TokenizerFactory.Enc.ALPHABET);
 
-        M.train(10000, 1e-1, 32, ds, 100, OptimizerFactory.Opt.DESC);
+
+        M.train(2000, 0.0001, 64,ds, 100, OptimizerFactory.Opt.ADAM, inputs, labels);
         M.generate(100);
         M.displayGraph(200);
         System.out.println("Model parameters:" + M.getParametersCount());

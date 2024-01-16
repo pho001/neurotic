@@ -789,6 +789,18 @@ public class Tensor {
             return out;
         }
 
+        public Tensor sigmoid(){
+            Tensor out=new Tensor(MathHelper.sigmoid(this.data),Set.of(this),"Sigmoid("+this.label+")");
+            out.localgradients=()->{
+                for (int i=0;i<out.rows;i++){
+                    for (int j=0;j<out.cols;j++){
+                        this.gradients[i][j]+=out.data[i][j]*(1-out.data[i][j])*out.gradients[i][j];
+                    }
+                }
+            };
+            return out;
+        }
+
 
     //per element multiplication with broadcasting
     public Tensor mulb (Tensor multiplicator){
@@ -865,16 +877,16 @@ public class Tensor {
 
         }
 
-    public Tensor oneHot(double[] pos){
-            int [] out=new int[pos.length];
-            for (int i=0;i<pos.length;i++){
-                out[i]=(int)Math.round(pos[i]);
-            }
-            //Tensor out=new Tensor(this.rows,this.cols,new HashSet<>(),"oneHot");
-            this.data=MathHelper.oneHot(this.data,out);
-            return this;
+        public Tensor oneHot(double[] pos){
+                int [] out=new int[pos.length];
+                for (int i=0;i<pos.length;i++){
+                    out[i]=(int)Math.round(pos[i]);
+                }
+                //Tensor out=new Tensor(this.rows,this.cols,new HashSet<>(),"oneHot");
+                this.data=MathHelper.oneHot(this.data,out);
+                return this;
 
-    }
+        }
 
         public Tensor randTensor(){
             this.data=MathHelper.randTensor(this.rows,this.cols);
@@ -919,6 +931,7 @@ public class Tensor {
                 t.localgradients.run();
             }
         }
+
 
         public void resetGradients() {
             Set<Tensor> topo = new HashSet<>();

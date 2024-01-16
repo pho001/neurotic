@@ -14,17 +14,30 @@ public class OneDirectionalRNNLayer implements NLayer{
     int rows;
     int cols;
 
+    int step;
+
     Tensor weights_h;
     Tensor bias_h;
-    public OneDirectionalRNNLayer(int hiddenSize, boolean useBias){
-        this.useBias=useBias;
-        this.rows=hiddenSize;
-        this.cols=hiddenSize;
+    Tensor bias_i;
 
-        this.weights_h=new Tensor(this.rows,this.cols, new HashSet<>(), "Weights").randTensor().muleach(1/(Math.pow(this.rows,2)));
+    Tensor [] hidden;
+
+    Tensor weights_i;
+    Tensor [] hidden_current;
+    Tensor hidden_prev;
+    int contextLength;
+
+    int hiddenSize;
+    public OneDirectionalRNNLayer(int hiddenSize,int contextLength, boolean useBias){
+        this.useBias=useBias;
+        this.step=0;
+        this.weights_h=new Tensor(hiddenSize,hiddenSize, new HashSet<>(), "Weights_h").randTensor().muleach(1/(Math.pow(hiddenSize,2)));
         this.weights_h.label="Weights_h";
+        this.hiddenSize=hiddenSize;
+        this.hidden=new Tensor [contextLength];
+        this.contextLength=contextLength;
         if (this.useBias==true)
-            this.bias_h= new Tensor(1, cols, new HashSet<>(), "Bias").zeros();
+            this.bias_h= new Tensor(1, hiddenSize, new HashSet<>(), "Bias").zeros();
 
     }
 
@@ -32,31 +45,40 @@ public class OneDirectionalRNNLayer implements NLayer{
 
     @Override
     public Tensor[] call(Tensor [] X){
-        this.out=new Tensor[X.length];
-        for (int i=0;i<X.length;i++) {
-            //hidden state forwarding
-            if (i==0){
-                out[i]=X[i];
-            }
-            else{
-                Tensor xh=out[i-1].mul(weights_h);
-                if (useBias)
-                    out[i]=X[i].add(xh).addb(bias_h);
-                else
-                    out[i]=X[i].add(xh);
-            }
+        if (step>contextLength-1)
+            step=0;
 
+        if (step==0){
+
+                if (useBias){
+                    this.hidden[step]=X[0].addb(bias_h).tanh();
+                }
+                else {
+                    this.hidden[step]=X[0].tanh();
+                }
+
+            }
+        else{
+                if (useBias)
+                    this.hidden[step]=hidden[step-1].mul(weights_h).add(X[0]).addb(bias_h).tanh();
+                else
+                    this.hidden[step]=hidden[step-1].mul(weights_h).add(X[0]).tanh();
         }
 
-        return this.out;
+        Tensor [] out= new Tensor[1];
+        out[0]=this.hidden[step];
+        step++;
+        return out;
     }
 
     @Override
     public HashSet<Tensor> parameters() {
         HashSet <Tensor> params=new HashSet<>();
         params.add(this.weights_h);
-        if (useBias)
+        if (useBias) {
             params.add(this.bias_h);
+        }
+
         return params;
     }
 

@@ -21,7 +21,11 @@ public class Mlp extends IModelBase{
         int batchSize;
         Dataset ds;
 
-    public Mlp(int embeddingVectorSize, int inputSize, int outputSize, int[] hiddenLayersNeurons, int contextLength, int alphabetSize, double epsilon, double momentum){
+        IEncoder encoder;
+
+
+
+    public Mlp(int embeddingVectorSize, int inputSize, int outputSize, int[] hiddenLayersNeurons, int contextLength, int alphabetSize, double epsilon, double momentum, String alphabet,TokenizerFactory.Enc encoder){
         this.alphabetSize=alphabetSize;
         this.embeddingVectorSize=embeddingVectorSize;
         this.contextLength=contextLength;
@@ -30,6 +34,8 @@ public class Mlp extends IModelBase{
         this.hiddenLayersNeurons=hiddenLayersNeurons;
         this.outputSize=outputSize;
         topologyBuilder();
+        this.encoder=TokenizerFactory.create(encoder,  alphabet);
+        this.contextLength=contextLength;
 
     }
     @Override
@@ -71,8 +77,10 @@ public class Mlp extends IModelBase{
         return this.topo;
     }
 
+    int epochsLasted=0;
+
     @Override
-    public void train(int epochs, double descent, int batchSize,Dataset ds,int displayFrequency, OptimizerFactory.Opt method){
+    public void train(int epochs, double descent, int batchSize,Dataset ds,int displayFrequency, OptimizerFactory.Opt method, List<String> inputs, List<String> targets){
         this.batchSize=batchSize;
         this.ds=ds;
         IOptimizer opt=OptimizerFactory.create(descent,method);
@@ -80,29 +88,48 @@ public class Mlp extends IModelBase{
         lossi=new double[epochs];
         this.setToTrainingMode=true;
         long kAverage=0;
-        if (ds.trainSet.length<=1){
-            throw new RuntimeException("Training data dimension is too low, it doesn't contain labels");
-        }
-        int contextLength=0;
+
+        int iteration=0;
+
+        int epochsLasted=0;
 
         for (int i=0;i<epochs;i++){
             long startTime = System.currentTimeMillis();
-            //TODO: i don't like this part, dataset preparation has to be fixed
-            double[][] batch=ds.giveMeRandomBatch(Dataset.setType.TRAIN,batchSize); //r:context, c:batch
-            contextLength=batch.length-1;
-            double [][] aLabels=new double [][]{batch [contextLength]};
-            double [][] aInputs=new double[contextLength][];
-            for (int j=0;j<contextLength;j++){
-                aInputs[j]=batch[j];
+
+
+
+            int startIndex=iteration*batchSize;
+            if (startIndex+batchSize>inputs.size()){
+                iteration=0;
+                startIndex=0;
+                epochsLasted++;
             }
+            else {
+                iteration=i;
+            }
+
+
+            List<String> batch=ds.giveMeBatch(batchSize,startIndex,Dataset.setType.TRAIN); //r:context, c:batch
+            double [][] inputsEncoded=new double[batchSize][contextLength];
+            double [][] targetsEncoded=new double[batchSize][1];
+            //row = batch, column= context
+            for (int b=0;b<batch.size();b++){
+                inputsEncoded[b]=encoder.encode(inputs.get(b).toCharArray());
+                targetsEncoded[b]=encoder.encode(targets.get(b).toCharArray());
+            }
+
+            //row = context, row= batch
+            double [][] inputsTransposed=MathHelper.transp(inputsEncoded);
+            double [][] targetsTransposed=MathHelper.transp(targetsEncoded);
+
             //int contextLength=aInputs.length;
             Tensor [] inputData=new Tensor[contextLength];
             for (int c=0;c<contextLength;c++){
-                inputData[c]=new Tensor(aInputs[0].length, ds.getAlphabetSize(), new HashSet<>(),"X"+i).oneHot(aInputs[c]);
+                inputData[c]=new Tensor(batchSize, ds.getAlphabetSize(), new HashSet<>(),"X"+i).oneHot(inputsTransposed[c]);
 
             }
             //Tensor inputData=new Tensor(aInputs,new HashSet<>(),"X");
-            Tensor labels=new Tensor(batchSize,ds.getAlphabetSize(),new HashSet<>(),"Y").oneHot(aLabels[0]);
+            Tensor labels=new Tensor(batchSize,ds.getAlphabetSize(),new HashSet<>(),"Y").oneHot(targetsTransposed[0]);
             Tensor[] out=call(inputData);
             loss=out[0].categoricalEntropyLoss(labels);
             lossi[i]=loss.data[0][0];
@@ -195,8 +222,10 @@ public class Mlp extends IModelBase{
         Tensor loss=null;
         double lossSum=0;
         this.setToTrainingMode = false;
-        int setSize=this.ds.giveMeSet(type)[0].length;
+        int setSize=this.ds.giveMeSet(type).size();
         int nBatches=(int)(Math.floor((double)setSize/this.batchSize));
+
+
         //TODO: needs to be fixed. Last batch, which is smaller then batchSize is ignored. Data preparation needs to be moved out of this class
 
         for (int i=0;i<nBatches;i++){
@@ -204,22 +233,28 @@ public class Mlp extends IModelBase{
             if (i*batchSize+batchSize>setSize){
                 batchSize=(i*nBatches+batchSize)-setSize;
             }
-            double [][] batch=ds.giveMeBatch(batchSize,startIndex,type);
-            double [][] aLabels=new double [][]{batch [batch.length-1]};
-            double [][] aInputs=new double[batch.length-1][];
-
-            for (int j=0;j<batch.length-1;j++){
-                aInputs[j]=batch[j];
+            List<String> batch=ds.giveMeBatch(batchSize,startIndex,type);
+            double [][] inputsEncoded=null;
+            double [][] targetsEncoded=null;
+            //row = batch, column= context
+            for (int b=0;b<batch.size();b++){
+                inputsEncoded[b]=encoder.encode(batch.get(b).toCharArray());
+                targetsEncoded[b]=encoder.encode(batch.get(b).toCharArray());
             }
-            int contextLength=aInputs.length;
+
+            //row = context, row= batch
+            double [][] inputsTransposed=MathHelper.transp(inputsEncoded);
+            double [][] targetsTransposed=MathHelper.transp(inputsEncoded);
+
+
             Tensor [] inputData=new Tensor[contextLength];
             for (int c=0;c<contextLength;c++){
-                inputData[c]=new Tensor(aInputs[0].length, ds.getAlphabetSize(), new HashSet<>(),"X"+i).oneHot(aInputs[c]);
+                inputData[c]=new Tensor(inputsTransposed[0].length, ds.getAlphabetSize(), new HashSet<>(),"X"+i).oneHot(inputsTransposed[c]);
 
             }
 
             //Tensor inputData=new Tensor(aInputs,new HashSet<>(),"X");
-            Tensor labels=new Tensor(batchSize,ds.getAlphabetSize(),new HashSet<>(),"Y").oneHot(aLabels[0]);
+            Tensor labels=new Tensor(batchSize,ds.getAlphabetSize(),new HashSet<>(),"Y").oneHot(targetsTransposed[0]);
             Tensor[] out=this.call(inputData);
             loss=out[0].categoricalEntropyLoss(labels);
             lossSum+=loss.data[0][0];

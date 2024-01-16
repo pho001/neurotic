@@ -177,6 +177,16 @@ public class MathHelper {
         return out;
     }
 
+    public static double [][] sigmoid(double [][] input){
+        double [][] out=new double [input.length][input[0].length];
+        for (int i=0;i<input.length;i++){
+            for (int j=0;j<input[0].length;j++){
+                out[i][j]=1/(1+Math.exp(-input[i][j]));
+            }
+        }
+        return out;
+    }
+
     public static double[][] divb(double [][] firstMatrix, double [][] secondMatrix){
         int colsFirst=firstMatrix[0].length;
         int colsSecond=secondMatrix[0].length;
@@ -703,7 +713,8 @@ public class MathHelper {
     public static double[][] hadamard(double [][] first, double [][] second){
 
         if (first.length!=second.length || first[0].length!=second[0].length){
-            throw new IllegalArgumentException("Dimensions don't match; per item multiplication is not possible");
+            throw new IllegalArgumentException("Dimensions don't match; " +
+                    "per item multiplication is not possible: "+ first.length+"x"+first[0].length+" vs "+second.length+"x"+second[0].length);
         }
         double [][] out=new double[first.length][first[0].length];
         for (int i=0;i<first.length;i++){
@@ -897,6 +908,26 @@ public class MathHelper {
         }
 
         return out;
+    }
+
+    public static int findMaxIndex(double[] arr) {
+        int maxIndex = 0;
+        for (int i = 1; i < arr.length; i++) {
+            if (arr[i] > arr[maxIndex]) {
+                maxIndex = i;
+            }
+        }
+        return maxIndex;
+    }
+
+    public static int countOccurrences(double[] arr, double value) {
+        int count = 0;
+        for (double v : arr) {
+            if (v == value) {
+                count++;
+            }
+        }
+        return count;
     }
 
 
